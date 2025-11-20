@@ -1,6 +1,11 @@
 # FORK OF apple2js
 
+I forked this AppleIIe emulator so that I could add BASIC to my online IDE for retro game programmers
 
+https://ide.retrogamecoders.com/
+
+This means hiding some of the nice features that do not make sense in that context,
+such as the onscreen keyboard and the disk drives.
 
 
 
