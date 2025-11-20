@@ -1,6 +1,6 @@
-# FORK OF apple2js
+# FORK OF Apple2JS
 
-I forked this AppleIIe emulator so that I could add BASIC to my online IDE for retro game programmers
+I forked this AppleIIe emulator so that I could add AppleSoft BASIC to my online IDE for retro game programmers
 
 https://ide.retrogamecoders.com/
 
