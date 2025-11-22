@@ -38,7 +38,7 @@ input[type='text'] {
 body {
     margin: 16px 0;
     font-size: 14px;
-    background-color: #c4c1a0; /* Pantone 453 */
+    background-color: black; /* Pantone 453 */
     font-family: sans-serif;
 }
 
@@ -57,7 +57,7 @@ body {
     background-color: black;
     width: 592px;
     height: 416px;
-    border: 6px inset #f0edd0;
+    /* border: 6px inset #f0edd0; */
     border-radius: 10px;
 }
 
@@ -113,7 +113,7 @@ body {
 
 .disk {
     align-items: center;
-    display: flex;
+    display: none;
     flex-grow: 1;
     max-width: 50%;
 }
@@ -161,7 +161,7 @@ th {
 
 .inset {
     border-radius: 6px;
-    border: 3px inset #f0edd0;
+    /* border: 3px inset #f0edd0; */
     padding: 6px;
     margin: 10px 0;
     display: flex;
@@ -402,7 +402,7 @@ a.button:hover {
 }
 
 #keyboard .row {
-    display: block;
+    display: none;
     margin: 0;
     padding: 0;
     height: 42px;
@@ -708,7 +708,7 @@ a.button:hover {
 
 #reset-row {
     align-items: center;
-    display: flex;
+    display: none;
     margin: 10px 0;
 }
 

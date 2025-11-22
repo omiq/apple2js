@@ -41,12 +41,12 @@
     <div id="exit-fullscreen">
       <button onClick="Apple2.exitFullScreen();">Exit Full Page</button>
     </div>
-    <div id="header">
+    <!-- <div id="header">
       <a href="https://github.com/whscullin/apple2js#readme" target="_blank">
         <img src="img/badge2e.png" id="badge" />
       </a>
       <div id="subtitle">An Apple //e Emulator in JavaScript</div>
-    </div>
+    </div> -->
     <div id="display">
       <div class="overscan">
         <canvas id="screen" width="592" height="416" tabindex="-1"></canvas>
@@ -325,5 +325,205 @@
   </svg>
 
   <script src="dist/main2e.bundle.js"></script>
+  <script>
+    // Ensure canvas can receive focus and keyboard input
+    function setupKeyboardInput() {
+      const canvas = document.getElementById('screen');
+      if (!canvas) return;
+      
+      // Make canvas focusable
+      canvas.setAttribute('tabindex', '0');
+      canvas.style.outline = 'none';
+      
+      // Focus canvas on click
+      canvas.addEventListener('click', () => {
+        canvas.focus();
+      });
+      
+      // Forward keyboard events to emulator (including control keys)
+      function handleKeyDown(e) {
+        if (!window.apple2 || !window.apple2.getIO) return;
+        const io = window.apple2.getIO();
+        if (!io) return;
+        
+        // Map special keys to Apple II key codes
+        const keyMap = {
+          'Enter': 13,
+          'Escape': 27,
+          'Backspace': 127,
+          'Delete': 127,
+          'ArrowLeft': 8,   // Left arrow = BS
+          'ArrowRight': 21, // Right arrow = CTRL-U
+          'ArrowUp': 11,    // Up arrow = CTRL-K
+          'ArrowDown': 10,  // Down arrow = CTRL-J
+          'Tab': 9,
+          'Home': 1,
+          'End': 5,
+          'PageUp': 11,
+          'PageDown': 10
+        };
+        
+        const appleKeyCode = keyMap[e.key];
+        
+        if (appleKeyCode !== undefined) {
+          io.keyDown(appleKeyCode);
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (e.key.length === 1) {
+          // Printable character
+          const charCode = e.key.charCodeAt(0);
+          if (charCode >= 32 && charCode <= 126) {
+            io.setKeyBuffer(charCode);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      }
+      
+      function handleKeyUp(e) {
+        if (!window.apple2 || !window.apple2.getIO) return;
+        const io = window.apple2.getIO();
+        if (!io) return;
+        
+        const keyMap = {
+          'Enter': 13,
+          'Escape': 27,
+          'Backspace': 127,
+          'Delete': 127,
+          'ArrowLeft': 8,
+          'ArrowRight': 21,
+          'ArrowUp': 11,
+          'ArrowDown': 10,
+          'Tab': 9,
+          'Home': 1,
+          'End': 5,
+          'PageUp': 11,
+          'PageDown': 10
+        };
+        
+        const appleKeyCode = keyMap[e.key];
+        if (appleKeyCode !== undefined) {
+          io.keyUp(appleKeyCode);
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+      
+      canvas.addEventListener('keydown', handleKeyDown);
+      canvas.addEventListener('keyup', handleKeyUp);
+    }
+    
+    // Handle messages from parent (pause/resume/reset)
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent) return;
+      
+      console.log('Apple2JS: Received message:', event.data.type);
+      
+      // Wait for emulator to be ready
+      if (!window.apple2) {
+        // Try to get it from Apple2 namespace
+        if (window.Apple2 && window.Apple2.apple2) {
+          window.apple2 = window.Apple2.apple2;
+        } else {
+          console.log('Apple2JS: Emulator not ready yet');
+          return; // Emulator not ready yet
+        }
+      }
+      
+      if (!window.apple2) {
+        console.log('Apple2JS: window.apple2 is still not available');
+        return;
+      }
+      
+      switch (event.data.type) {
+        case 'pause':
+        case 'stop':
+          console.log('Apple2JS: Pausing emulator');
+          if (typeof window.apple2.isRunning === 'function' && window.apple2.isRunning()) {
+            window.apple2.stop();
+            console.log('Apple2JS: Emulator paused');
+          } else if (typeof window.apple2.stop === 'function') {
+            window.apple2.stop();
+            console.log('Apple2JS: Emulator stopped (isRunning not available)');
+          } else {
+            console.log('Apple2JS: stop() method not available');
+          }
+          break;
+        case 'resume':
+        case 'run':
+          console.log('Apple2JS: Resuming emulator');
+          if (typeof window.apple2.run === 'function') {
+            const isRunning = typeof window.apple2.isRunning === 'function' ? window.apple2.isRunning() : false;
+            if (!isRunning) {
+              window.apple2.run();
+              console.log('Apple2JS: Emulator resumed');
+            } else {
+              console.log('Apple2JS: Emulator already running');
+            }
+          } else {
+            console.log('Apple2JS: run() method not available');
+          }
+          break;
+        case 'reset':
+          console.log('Apple2JS: Resetting emulator with Open Apple + Reset');
+          if (typeof window.apple2.reset === 'function') {
+            const wasRunning = typeof window.apple2.isRunning === 'function' ? window.apple2.isRunning() : true;
+            const io = window.apple2.getIO ? window.apple2.getIO() : null;
+            
+            // Press and hold Open Apple (button 0) before reset
+            if (io && typeof io.buttonDown === 'function') {
+              io.buttonDown(0, true); // Press Open Apple
+              console.log('Apple2JS: Open Apple button pressed');
+            }
+            
+            // Small delay to ensure button is registered
+            setTimeout(() => {
+              // Reset while holding Open Apple (this triggers boot from disk if disk is present)
+              window.apple2.reset();
+              console.log('Apple2JS: Emulator reset with Open Apple held');
+              
+              // Release Open Apple after reset
+              if (io && typeof io.buttonDown === 'function') {
+                setTimeout(() => {
+                  io.buttonDown(0, false); // Release Open Apple
+                  console.log('Apple2JS: Open Apple button released');
+                }, 100);
+              }
+              
+              // Ensure emulator continues running after reset
+              if (wasRunning && typeof window.apple2.run === 'function') {
+                setTimeout(() => {
+                  if (typeof window.apple2.isRunning === 'function' && !window.apple2.isRunning()) {
+                    window.apple2.run();
+                    console.log('Apple2JS: Emulator restarted after reset');
+                  } else if (typeof window.apple2.isRunning !== 'function') {
+                    window.apple2.run();
+                    console.log('Apple2JS: Emulator restarted after reset (isRunning not available)');
+                  }
+                }, 200);
+              }
+            }, 50);
+          } else {
+            console.log('Apple2JS: reset() method not available');
+          }
+          break;
+      }
+    });
+    
+    // Wait for emulator to be ready
+    window.addEventListener('load', () => {
+      const checkReady = setInterval(() => {
+        if (window.Apple2 && window.Apple2.apple2) {
+          clearInterval(checkReady);
+          window.apple2 = window.Apple2.apple2;
+          Promise.resolve(window.apple2.ready).then(() => {
+            setupKeyboardInput();
+          });
+        }
+      }, 100);
+      
+      setTimeout(() => clearInterval(checkReady), 10000);
+    });
+  </script>
 </body>
 </html>
